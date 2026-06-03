@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Receipt Generator</title>
+  <style>
+    :root {
+      --orange: #f47b20;
+      --dark: #1f1f1f;
+      --muted: #666;
+      --line: #bdb7ad;
+      --paper: #ffffff;
+      --bg: #f2f2f2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: #111;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      min-height: 100vh;
+    }
+
+    .panel {
+      background: #111;
+      color: white;
+      padding: 22px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .panel h1 {
+      color: var(--orange);
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .panel p {
+      color: #ccc;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 8px 0 18px;
+    }
+
+    .field { margin-bottom: 12px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 7px;
+      border: 1px solid #333;
+      background: #222;
+      color: white;
+      outline: none;
+      font-size: 14px;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--orange);
+    }
+
+    textarea {
+      min-height: 62px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .check-group {
+      display: grid;
+      gap: 7px;
+    }
+
+    .check-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #eee;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .check-item input {
+      width: auto;
+      accent-color: var(--orange);
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .print-btn {
+      background: var(--orange);
+      color: white;
+    }
+
+    .clear-btn {
+      background: #333;
+      color: white;
+      border: 1px solid #444;
+    }
+
+    .preview {
+      padding: 28px;
+      overflow: auto;
+    }
+
+    .receipt {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: var(--paper);
+      padding: 14mm 10mm 10mm;
+      position: relative;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.16);
+      font-size: 11px;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1fr 86mm;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .logo-image {
+      max-width: 150px;
+      max-height: 60px;
+      width: auto;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .company {
+      margin-top: 10px;
+      line-height: 1.45;
+      color: #555;
+      font-size: 10px;
+    }
+
+    .title {
+      color: var(--orange);
+      text-align: right;
+      font-size: 22px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .number-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8px;
+    }
+
+    .number-table th, .number-table td {
+      border: 1px solid var(--line);
+      text-align: left;
+      width: 50%;
+    }
+
+    .number-table th {
+      padding: 7px;
+      color: #555;
+      font-weight: 900;
+    }
+
+    .number-table td {
+      height: 25px;
+      padding: 4px 7px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .orange-line {
+      border-top: 4px solid var(--orange);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      border-bottom: 1px solid #d1cbc2;
+      padding-bottom: 8px;
+      margin: 14px 0;
+      text-transform: uppercase;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--orange);
+      display: inline-block;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 26px;
+    }
+
+    .receipt-field {
+      margin-bottom: 15px;
+    }
+
+    .receipt-label {
+      font-size: 8px;
+      color: #555;
+      text-transform: uppercase;
+      font-weight: 900;
+      margin-bottom: 11px;
+      display: block;
+    }
+
+    .line {
+      min-height: 21px;
+      border-bottom: 1.5px solid var(--line);
+      font-size: 13px;
+      font-weight: 800;
+      padding-bottom: 3px;
+      overflow-wrap: anywhere;
+    }
+
+    .box {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 1.8px solid #555;
+      margin-right: 7px;
+      vertical-align: -2px;
+      text-align: center;
+      line-height: 11px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .checked::after {
+      content: "✓";
+    }
+
+    .category-line, .method-line, .currency-line {
+      display: flex;
+      gap: 22px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 13px;
+      margin: 3px 0 17px;
+    }
+
+    .payment-box {
+      display: grid;
+      grid-template-columns: 1.65fr 1fr;
+      border: 2px solid var(--orange);
+      min-height: 84px;
+      margin: 8px 0 18px;
+    }
+
+    .payment-left {
+      background: #fff8f1;
+      padding: 16px;
+    }
+
+    .payment-right {
+      background: var(--dark);
+      color: white;
+      padding: 19px 17px;
+    }
+
+    .pay-title {
+      color: var(--orange);
+      font-size: 8px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .amount {
+      font-size: 18px;
+      font-weight: 900;
+      margin-top: 6px;
+    }
+
+    .purpose-main {
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .purpose-sub {
+      color: #d0d0d0;
+      font-style: italic;
+      font-size: 10px;
+    }
+
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 52mm;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .signature-line {
+      border-bottom: 2px solid #111;
+      height: 32px;
+      margin-bottom: 5px;
+    }
+
+    .sig-label {
+      font-size: 8px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .sig-sub {
+      color: #555;
+      font-size: 8px;
+      font-style: italic;
+      margin-top: 3px;
+    }
+
+    .seal {
+      height: 42mm;
+      border: 1.5px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #555;
+      font-size: 8px;
+      font-weight: 900;
+      line-height: 1.7;
+      background: #fffdf8;
+    }
+
+    .bottom-line {
+      border-top: 2px solid var(--orange);
+      margin-top: 11px;
+    }
+
+    .refund {
+      position: absolute;
+      left: 10mm;
+      right: 10mm;
+      bottom: 8mm;
+      font-size: 8.2px;
+      line-height: 1.35;
+      color: #222;
+    }
+
+    .refund b {
+      font-weight: 900;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #bbb;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1000px) {
+      .app { grid-template-columns: 1fr; }
+      .panel {
+        height: auto;
+        position: static;
+      }
+      .preview {
+        height: 850px;
+      }
+      .receipt {
+        transform: scale(0.72);
+        transform-origin: top left;
+        margin: 0;
+      }
+    }
+
+    @media print {
+      body { background: white; }
+      .panel { display: none; }
+      .preview { padding: 0; overflow: visible; }
+      .receipt {
+        box-shadow: none;
+        margin: 0;
+        width: 210mm;
+        min-height: 297mm;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="panel">
+      <h1>Receipt Generator</h1>
+      <p>Enter the details. The receipt will update automatically. Then click Print / Save PDF.</p>
+
+      <div class="field">
+        <label>Receipt Type</label>
+        <select id="receiptType">
+          <option value="participant">Participant Receipt</option>
+          <option value="guardian">Guardian Receipt</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Receipt No.</label>
+          <input id="receiptNo" placeholder="TA-GRIC-001">
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input id="date" type="date">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Participant Name</label>
+        <input id="participantName" placeholder="Participant full name">
+      </div>
+
+      <div class="field">
+        <label>Guardian Name</label>
+        <input id="guardianName" placeholder="Guardian full name">
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Contact Number</label>
+          <input id="contact" placeholder="+880...">
+        </div>
+        <div class="field">
+          <label>Relationship to Guardian</label>
+          <input id="relationship" placeholder="Father / Mother / Guardian">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Team Name</label>
+        <input id="teamName" placeholder="Team name">
+      </div>
+
+      <div class="field">
+        <label>Address</label>
+        <textarea id="address" placeholder="Full address"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Competition Category</label>
+        <div class="check-group">
+          <label class="check-item"><input type="checkbox" id="catProject"> Project League</label>
+          <label class="check-item"><input type="checkbox" id="catArena"> Arena League</label>
+          <label class="check-item"><input type="checkbox" id="catStartup"> Startup League</label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Currency</label>
+          <select id="currency">
+            <option value="BDT">BDT</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Amount</label>
+          <input id="amount" placeholder="Amount">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Received From</label>
+        <input id="receivedFrom" placeholder="Name of payer">
+      </div>
+
+      <div class="field">
+        <label>Transaction ID / Reference No.</label>
+        <input id="transactionId" placeholder="Transaction or reference number">
+      </div>
+
+      <div class="field">
+        <label>Payment Method</label>
+        <select id="paymentMethod">
+          <option value="Cash">Cash</option>
+          <option value="Bank Transfer">Bank Transfer</option>
+          <option value="Bkash/Nagad">Bkash/Nagad</option>
+          <option value="Cheque">Cheque</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Payer Name</label>
+          <input id="payerName" placeholder="Payer name">
+        </div>
+        <div class="field">
+          <label>Payer Contact No.</label>
+          <input id="payerContact" placeholder="+880...">
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+        <button class="clear-btn" onclick="clearForm()">Clear</button>
+      </div>
+
+      <div class="note">
+        To use your real logo, replace the file <b>logo-placeholder.svg</b> with your own logo image,
+        or change the image path in <b>index.html</b>.
+      </div>
+    </aside>
+
+    <main class="preview">
+      <section class="receipt">
+        <div class="top">
+          <div>
+            <div class="logo-wrap">
+              <img src="logo-placeholder.svg" alt="Organization Logo" class="logo-image">
+            </div>
+            <div class="company">
+              Suite 10B, 8/A/10, Road-13, Doreen Tower<br>
+              Dhanmondi-32, Dhaka-1209, Bangladesh<br>
+              Phone&nbsp;&nbsp;<b>+880 1880-739589</b>
+            </div>
+          </div>
+
+          <div>
+            <div class="title" id="outTitle">OFFICIAL RECEIPT</div>
+            <table class="number-table">
+              <tr>
+                <th>RECEIPT NO.</th>
+                <th>DATE</th>
+              </tr>
+              <tr>
+                <td id="outReceiptNo"></td>
+                <td id="outDate"></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="orange-line"></div>
+
+        <div class="section-title" id="outDetailsTitle">Participant Details</div>
+
+        <div class="two-col">
+          <div>
+            <div class="receipt-field">
+              <span class="receipt-label">Participant Name</span>
+              <div class="line" id="outParticipantName"></div>
+            </div>
+
+            <div class="receipt-field">
+              <span class="receipt-label">Contact Number</span>
+              <div class="line" id="outContact"></div>
+            </div>
+
+            <div class="receipt-field">
+              <span class="receipt-label">Team Name</span>
+              <div class="line" id="outTeamName"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="receipt-field">
+              <span class="receipt-label">Guardian Name</span>
+              <div class="line" id="outGuardianName"></div>
+            </div>
+
+            <div class="receipt-field">
+              <span class="receipt-label">Relationship to Guardian</span>
+              <div class="line" id="outRelationship"></div>
+            </div>
+
+            <div class="receipt-field">
+              <span class="receipt-label">Address</span>
+              <div class="line" id="outAddress"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Participant's Competition Category</div>
+        <span class="receipt-label">Category - Tick One or More</span>
+
+        <div class="category-line">
+          <span><span class="box" id="outCatProject"></span>Project League</span>
+          <span><span class="box" id="outCatArena"></span>Arena League</span>
+          <span><span class="box" id="outCatStartup"></span>Startup League</span>
+        </div>
+
+        <div class="section-title">Payment Details</div>
+
+        <div class="payment-box">
+          <div class="payment-left">
+            <div class="pay-title">Amount Received</div>
+            <div class="currency-line">
+              <span><span class="box" id="outBDT"></span>BDT</span>
+              <span><span class="box" id="outUSD"></span>USD</span>
+            </div>
+            <span class="receipt-label">Amount</span>
+            <div class="amount" id="outAmount"></div>
+          </div>
+
+          <div class="payment-right">
+            <div class="pay-title">Purpose of Payment</div>
+            <div class="purpose-main">GRIC 2026 International Round</div>
+            <div class="purpose-sub" id="outPurposeSub">Bangladesh Delegation Registration</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="receipt-field">
+            <span class="receipt-label">Received From</span>
+            <div class="line" id="outReceivedFrom"></div>
+          </div>
+
+          <div class="receipt-field">
+            <span class="receipt-label">Transaction ID / Reference No.</span>
+            <div class="line" id="outTransactionId"></div>
+          </div>
+        </div>
+
+        <span class="receipt-label">Payment Method</span>
+        <div class="method-line">
+          <span><span class="box" id="outCash"></span>Cash</span>
+          <span><span class="box" id="outBank"></span>Bank Transfer</span>
+          <span><span class="box" id="outBkash"></span>Bkash/Nagad</span>
+          <span><span class="box" id="outCheque"></span>Cheque</span>
+        </div>
+
+        <div class="section-title">Signatures</div>
+
+        <div class="signature-grid">
+          <div>
+            <div class="signature-line"></div>
+            <div class="sig-label">Payer's Signature</div>
+            <br>
+            <span class="receipt-label">Name</span>
+            <div class="line" id="outPayerName"></div>
+            <br>
+            <span class="receipt-label">Contact No.</span>
+            <div class="line" id="outPayerContact"></div>
+          </div>
+
+          <div>
+            <div class="signature-line"></div>
+            <div class="sig-label">Authorised Signature</div>
+            <div class="sig-sub">Authorised Signatory</div>
+          </div>
+
+          <div class="seal">
+            OFFICIAL SEAL<br>/ STAMP
+          </div>
+        </div>
+
+        <div class="bottom-line"></div>
+
+        <div class="refund">
+          <b>REFUND POLICY</b>&nbsp;&nbsp;
+          In the event of a visa rejection, the submitted registration fee will be refunded within 7-14 working days, subject to verification of the official visa refusal documents.
+          This receipt is computer-generated and is valid only when signed by an authorised signatory and bearing the official seal.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fields = [
+      "receiptType", "receiptNo", "date", "participantName", "guardianName", "contact",
+      "relationship", "teamName", "address", "catProject", "catArena", "catStartup",
+      "currency", "amount", "receivedFrom", "transactionId", "paymentMethod",
+      "payerName", "payerContact"
+    ];
+
+    function get(id) {
+      const el = document.getElementById(id);
+      return el.type === "checkbox" ? el.checked : el.value;
+    }
+
+    function text(id, value) {
+      document.getElementById(id).textContent = value || "";
+    }
+
+    function check(id, value) {
+      document.getElementById(id).classList.toggle("checked", Boolean(value));
+    }
+
+    function prettyDate(value) {
+      if (!value) return "";
+      const date = new Date(value + "T00:00:00");
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    }
+
+    function updateReceipt() {
+      const type = get("receiptType");
+
+      text("outTitle", type === "guardian" ? "GUARDIAN RECEIPT" : "OFFICIAL RECEIPT");
+      text("outDetailsTitle", type === "guardian" ? "Guardian Details" : "Participant Details");
+      text("outPurposeSub", type === "guardian" ? "Guardian / Delegation Registration" : "Bangladesh Delegation Registration");
+
+      text("outReceiptNo", get("receiptNo"));
+      text("outDate", prettyDate(get("date")));
+      text("outParticipantName", get("participantName"));
+      text("outGuardianName", get("guardianName"));
+      text("outContact", get("contact"));
+      text("outRelationship", get("relationship"));
+      text("outTeamName", get("teamName"));
+      text("outAddress", get("address"));
+      text("outAmount", get("amount") ? get("currency") + " " + get("amount") : "");
+      text("outReceivedFrom", get("receivedFrom"));
+      text("outTransactionId", get("transactionId"));
+      text("outPayerName", get("payerName"));
+      text("outPayerContact", get("payerContact"));
+
+      check("outCatProject", get("catProject"));
+      check("outCatArena", get("catArena"));
+      check("outCatStartup", get("catStartup"));
+
+      check("outBDT", get("currency") === "BDT");
+      check("outUSD", get("currency") === "USD");
+
+      const method = get("paymentMethod");
+      check("outCash", method === "Cash");
+      check("outBank", method === "Bank Transfer");
+      check("outBkash", method === "Bkash/Nagad");
+      check("outCheque", method === "Cheque");
+    }
+
+    function clearForm() {
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el.type === "checkbox") {
+          el.checked = false;
+        } else if (!["receiptType", "currency", "paymentMethod"].includes(id)) {
+          el.value = "";
+        }
+      });
+      document.getElementById("date").valueAsDate = new Date();
+      updateReceipt();
+    }
+
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener("input", updateReceipt);
+      el.addEventListener("change", updateReceipt);
+    });
+
+    document.getElementById("date").valueAsDate = new Date();
+    updateReceipt();
+  </script>
+</body>
+</html>
